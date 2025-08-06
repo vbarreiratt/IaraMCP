@@ -1,0 +1,42 @@
+# 🧜‍♀️ IaraMCP - Smithery Configuration (CORRIGIDA)
+name: iaramcp
+version: "0.1.0"
+description: "Servidor MCP de Análise Musical - versão leve para Smithery.ai"
+
+# OBRIGATÓRIO: runtime container
+runtime: "container"
+
+# Configuração de build corrigida
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+
+# Comando de start HTTP
+startCommand:
+  type: "http"
+
+# Configuração de execução
+run:
+  http:
+    ports:
+      - port: 3333
+        health_check:
+          http:
+            path: "/"
+            timeout: 30s
+            interval: 60s
+
+# Variáveis de ambiente
+environment:
+  IARAMCP_VIS_MODE: "web"
+  PYTHONPATH: "/app"
+
+# Recursos reduzidos
+resources:
+  memory: "512Mi"
+  cpu: "0.25"
+
+# Metadados
+author: "IaraMCP"
+license: "MIT"
+tags: ["mcp", "audio", "music", "brazil"]
