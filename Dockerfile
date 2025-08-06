@@ -1,35 +1,32 @@
-# 🧜‍♀️ IaraMCP Dockerfile - Portal das Águas Musicais
+# 🧜‍♀️ IaraMCP Dockerfile LITE - Versão Leve para Smithery
 FROM python:3.11-slim
 
-# Instalar dependências do sistema
+# Instalar apenas dependências essenciais
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar diretório de trabalho
 WORKDIR /app
 
-# Copiar e instalar dependências Python
-COPY requirements-docker.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt uvicorn
+# Dependências Python LEVES (sem PyTorch/Demucs)
+COPY requirements-lite.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código fonte
 COPY ./src ./src
-COPY pyproject.toml README.md ./
+COPY pyproject.toml ./
 
 # Configurar variáveis de ambiente
 ENV PYTHONPATH=/app \
-    IARAMCP_VIS_MODE=web \
-    PORT=3333
+    IARAMCP_VIS_MODE=web
 
-# Expor porta
-EXPOSE 3333
+# Usar variável PORT do ambiente
+EXPOSE ${PORT:-3333}
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:3333/ || exit 1
+# Health check leve
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-3333}/ || exit 1
 
-# Comando de inicialização
-CMD ["uvicorn", "src.iaramcp.server_fastmcp:app", "--host", "0.0.0.0", "--port", "3333", "--workers", "1"]
+# Comando que usa PORT do ambiente
+CMD uvicorn src.iaramcp.server_fastmcp:app --host 0.0.0.0 --port ${PORT:-3333}
