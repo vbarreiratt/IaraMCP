@@ -1,19 +1,51 @@
 # 🧜‍♀️ IaraMCP Dockerfile - Portal das Águas Musicais
-FROM python:3.11-slim
+# Multi-stage build otimizado para resolver problemas de timeout
 
-# Instalar dependências do sistema
+# Stage 1: Build dependencies
+FROM python:3.11-slim as builder
+
+# Instalar dependências do sistema necessárias para build
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
     ffmpeg \
     git \
+    curl \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar diretório de trabalho
+WORKDIR /app
+
+# Criar virtual environment
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Copiar arquivos de dependências primeiro (otimização de cache)
+COPY arquivo/requirements-docker.txt requirements.txt
+COPY pyproject.toml ./
+
+# Instalar dependências com cache mount para otimizar builds subsequentes
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt uvicorn
+
+# Stage 2: Runtime image
+FROM python:3.11-slim
+
+# Instalar apenas dependências de runtime necessárias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar diretório de trabalho
 WORKDIR /app
 
-# Copiar e instalar dependências Python
-COPY requirements-docker.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt uvicorn
+# Copiar virtual environment do stage de build
+COPY --from=builder /app/venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
 # Copiar código fonte
 COPY ./src ./src

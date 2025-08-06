@@ -1,0 +1,21 @@
+{
+  "name": "iaramcp",
+  "version": "1.0.0",
+  "description": "*Inspirado na Iara, ser mitológico brasileiro das águas, que seduz com sua música encantadora*",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vbarreiratt/IaraMCP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vbarreiratt/IaraMCP/issues"
+  },
+  "homepage": "https://github.com/vbarreiratt/IaraMCP#readme"
+}
