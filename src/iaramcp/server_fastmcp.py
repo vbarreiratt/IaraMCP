@@ -15,6 +15,39 @@ import time
 import logging
 from typing import Dict, List, Optional, Any
 
+
+
+# Função para detectar o modo de visualização (mover aqui para evitar importação circular)
+def detectar_modo_visualizacao() -> str:
+    """
+    Detecta o modo de visualização do ambiente.
+    Retorna "local" se estiver em ambiente desktop, "web" caso contrário.
+    """
+    # Heurística simples baseada em variáveis de ambiente ou contexto
+    # Pode ser expandida conforme necessário
+    if os.environ.get("IARAMCP_VIS_MODE") == "local":
+        return "local"
+    # Detecta se está rodando em ambiente Jupyter ou Google Colab
+    try:
+        import IPython
+        if "google.colab" in str(getattr(IPython, "get_ipython", lambda: None)()):
+            return "web"
+    except Exception:
+        pass
+    # Fallback: se tiver DISPLAY ou rodando em desktop
+    if os.environ.get("DISPLAY") or sys.platform in ("darwin", "win32"):
+        return "local"
+    return "web"
+
+
+MODO_VISUALIZACAO = detectar_modo_visualizacao()
+
+def definir_caminho_saida(nome_base: str, extensao: str = ".png") -> Optional[str]:
+    if MODO_VISUALIZACAO == "local":
+        return os.path.join("/Users/vitor/Desktop", f"{nome_base}{extensao}")
+    else:
+        return None
+
 logger = logging.getLogger(__name__)
 
 # Add the src directory to Python path
@@ -287,8 +320,8 @@ def iara_explorar_caverna_sonora(directory_path: str, file_extensions: List[str]
 
 @mcp.tool()
 async def iara_separar_correntes_musicais(
-    caminho_arquivo: str, 
-    metodo: str = "demucs", 
+    caminho_arquivo: str,
+    metodo: str = "demucs",
     modelo: str = "htdemucs_ft",
     formato_saida: str = "wav",
     diretorio_saida: Optional[str] = None
@@ -307,37 +340,49 @@ async def iara_separar_correntes_musicais(
         Separation results with stem paths and quality metrics
     """
     try:
-        if not Path(file_path).exists():
-            return {"error": f"File not found: {file_path}"}
-        
-        if method.lower() != "demucs":
-            return {"error": f"Unsupported separation method: {method}. Only 'demucs' is supported."}
-        
+        if not Path(caminho_arquivo).exists():
+            return {"error": f"File not found: {caminho_arquivo}"}
+
+        if metodo.lower() != "demucs":
+            return {"error": f"Unsupported separation method: {metodo}. Only 'demucs' is supported."}
+
         # Validate model
         available_models = SourceSeparator.get_available_models()
-        if model not in available_models:
+        if modelo not in available_models:
             return {
-                "error": f"Unsupported model: {model}",
+                "error": f"Unsupported model: {modelo}",
                 "available_models": available_models
             }
-        
+
+        # Fallback automático para modo de execução (Claude Desktop etc)
+        if diretorio_saida is None:
+            try:
+                from iaramcp.utils.environment import detectar_modo_execucao
+                modo = detectar_modo_execucao()
+            except Exception:
+                modo = "modo_local"
+            if modo == "modo_local":
+                diretorio_saida = os.path.join("/Users/vitor/Desktop", "stems_separados")
+            else:
+                diretorio_saida = None
+
         # Create separator with specified model
-        local_separator = SourceSeparator(model_name=model, device='auto')
-        
+        local_separator = SourceSeparator(model_name=modelo, device='auto')
+
         # Progress callback for user feedback
         async def progress_update(message: str, percent: int):
             pass  # Could be enhanced to provide real-time updates
-        
+
         # Perform separation
         result = await local_separator.separate_audio(
-            file_path=file_path,
-            output_dir=output_dir,
-            format=output_format,
+            file_path=caminho_arquivo,
+            output_dir=diretorio_saida,
+            format=formato_saida,
             progress_callback=progress_update
         )
-        
+
         return result
-        
+
     except Exception as e:
         import traceback
         return {
@@ -564,14 +609,14 @@ async def iara_reconhecer_instrumentos_das_aguas(
         Detected instruments with confidence scores and subcategories
     """
     try:
-        if not Path(file_path).exists():
-            return {"error": f"File not found: {file_path}"}
+        if not Path(caminho_arquivo).exists():
+            return {"error": f"File not found: {caminho_arquivo}"}
         
         result = await classifier.identify_instruments(
-            file_path=file_path,
-            use_separation=use_separation,
-            confidence_threshold=confidence_threshold,
-            method=method
+            file_path=caminho_arquivo,
+            use_separation=usar_separacao,
+            confidence_threshold=limiar_confianca,
+            method=metodo
         )
         
         return result
@@ -1086,14 +1131,21 @@ async def iara_visualizar_ondas_do_tempo(
         Waveform visualization as base64 image or file path
     """
     try:
-        if not Path(file_path).exists():
-            return {"error": f"File not found: {file_path}"}
+        from .server_fastmcp import detectar_modo_visualizacao
+        if caminho_saida is None:
+            modo = detectar_modo_visualizacao()
+            if modo == "local":
+                caminho_saida = "/tmp/waveform.png"
+            # If modo is 'remoto', keep caminho_saida as None to return base64
+
+        if not Path(caminho_arquivo).exists():
+            return {"error": f"File not found: {caminho_arquivo}"}
         
         result = await visualizer.create_waveform(
-            file_path=file_path,
-            output_path=output_path,
-            show_envelope=show_envelope,
-            normalize=normalize
+            file_path=caminho_arquivo,
+            output_path=caminho_saida,
+            show_envelope=mostrar_envelope,
+            normalize=normalizar
         )
         
         return result
@@ -1127,26 +1179,44 @@ async def iara_criar_mapa_das_frequencias(
         Visualização do espectrograma como imagem base64 ou caminho do arquivo
     """
     try:
-        if not Path(file_path).exists():
-            return {"error": f"File not found: {file_path}"}
-        
+        import os
+        from pathlib import Path
+        # Importar detectar_modo_visualizacao apenas aqui para evitar erro de import global
+        def _detectar_modo_visualizacao_fallback():
+            try:
+                from .server_fastmcp import detectar_modo_visualizacao
+                return detectar_modo_visualizacao()
+            except Exception:
+                return "local"
+
+        if not Path(caminho_arquivo).exists():
+            return {"error": f"File not found: {caminho_arquivo}"}
+
         valid_types = ['stft', 'mel', 'cqt']
-        if spectrogram_type not in valid_types:
+        if tipo_espectrograma not in valid_types:
             return {
-                "error": f"Invalid spectrogram type: {spectrogram_type}",
+                "error": f"Invalid spectrogram type: {tipo_espectrograma}",
                 "valid_types": valid_types
             }
-        
+
+        # Fallback automático e montagem de caminho de saída completo
+        modo = _detectar_modo_visualizacao_fallback()
+        if caminho_saida:
+            if os.path.isdir(caminho_saida) or caminho_saida.endswith(os.sep):
+                output_path = os.path.join(caminho_saida, "spectrograma.png")
+            else:
+                output_path = caminho_saida
+        else:
+            output_path = "/tmp/spectrograma.png" if modo == "local" else None
+
         result = await visualizer.create_spectrogram(
-            file_path=file_path,
+            file_path=caminho_arquivo,
             output_path=output_path,
-            spectrogram_type=spectrogram_type,
-            hop_length=hop_length,
-            n_fft=n_fft
+            spectrogram_type=tipo_espectrograma,
+            hop_length=tamanho_salto,
+            n_fft=tamanho_fft
         )
-        
         return result
-        
     except Exception as e:
         import traceback
         return {
@@ -1172,6 +1242,13 @@ async def iara_pintar_essencia_musical(
         Feature visualization as base64 image or file path
     """
     try:
+        from .server_fastmcp import detectar_modo_visualizacao
+        if output_path is None:
+            modo = detectar_modo_visualizacao()
+            if modo == "local":
+                output_path = "/tmp/"
+            # If modo is 'remoto', keep output_path as None
+
         if not Path(file_path).exists():
             return {"error": f"File not found: {file_path}"}
         
@@ -1181,10 +1258,15 @@ async def iara_pintar_essencia_musical(
             return analysis_result
         
         features = analysis_result.get("analysis", {})
-        
+
+        output_file_path = None
+        if output_path:
+            output_filename = "essencia_musical.png"
+            output_file_path = os.path.join(output_path, output_filename)
+
         result = await visualizer.create_feature_analysis_plot(
             features=features,
-            output_path=output_path,
+            output_path=output_file_path,
             plot_type=plot_type
         )
         
@@ -1215,6 +1297,14 @@ async def iara_desenhar_correntes_separadas(
         Stems comparison visualization as base64 image or file path
     """
     try:
+        from .server_fastmcp import detectar_modo_visualizacao
+        if output_path is None:
+            modo = detectar_modo_visualizacao()
+            if modo == "local":
+                output_path = "/tmp/"
+            # If modo is 'remoto', keep output_path as None
+
+        import os
         if not Path(file_path).exists():
             return {"error": f"File not found: {file_path}"}
         
@@ -1240,10 +1330,20 @@ async def iara_desenhar_correntes_separadas(
         if not stems_data:
             return {"error": "No valid stems found after separation"}
         
+        # Compose full output file path if output_path is a directory
+        output_file = None
+        if output_path:
+            # If output_path appears to be a directory, append filename
+            if os.path.isdir(output_path) or output_path.endswith(os.sep):
+                output_file = os.path.join(output_path, "stems_comparison.png")
+            else:
+                # If output_path is a file path, use as is
+                output_file = output_path
+        
         # Create visualization
         result = await visualizer.create_stems_comparison(
             stems_data=stems_data,
-            output_path=output_path
+            output_path=output_file
         )
         
         # Cleanup temp files

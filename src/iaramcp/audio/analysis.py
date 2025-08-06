@@ -107,13 +107,33 @@ class AudioAnalyzer:
         # Load audio
         y, sr = librosa.load(file_path, sr=self.sr)
         duration = librosa.get_duration(y=y, sr=sr)
+
+        # --- Spectral analysis for plot_type='spectral' ---
+        spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr).mean()
+        spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr).mean()
+        spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr).mean()
+
+        # We'll add these to the 'spectral' features dictionary below
+        spectral_summary = {
+            "centroid": float(spectral_centroid),
+            "rolloff": float(spectral_rolloff),
+            "bandwidth": float(spectral_bandwidth),
+        }
+        # --- End spectral analysis block ---
         
         # Run analysis in chunks to avoid blocking
         temporal_features = await self._analyze_temporal_features(y, sr)
         spectral_features = await self._analyze_spectral_features(y, sr)
         harmonic_features = await self._analyze_harmonic_features(y, sr)
         rhythmic_features = await self._analyze_rhythmic_features(y, sr)
-        
+
+        # Ensure spectral_summary is included in the 'spectral' dict
+        if isinstance(spectral_features, dict):
+            spectral_features = dict(spectral_features)  # shallow copy
+            spectral_features["centroid"] = spectral_summary["centroid"]
+            spectral_features["rolloff"] = spectral_summary["rolloff"]
+            spectral_features["bandwidth"] = spectral_summary["bandwidth"]
+
         processing_time = time.time() - start_time
         
         result = {

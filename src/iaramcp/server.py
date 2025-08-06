@@ -6,6 +6,7 @@ A Model Context Protocol server for advanced audio analysis including
 source separation, instrument detection, and comprehensive musical analysis.
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -136,20 +137,36 @@ async def validate_audio_file_tool(arguments: Dict[str, Any]) -> List[mcp_types.
 
 async def main():
     """Main entry point for the MCP server."""
-    from mcp.server.stdio import stdio_server
-    
-    logger.info("Starting MCP Advanced Music Analysis Server")
-    
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="mcp-advanced-music",
-                server_version="0.1.0",
-                capabilities=app.get_capabilities()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--transport", type=str, default="stdio", help="Transport type (stdio, http, etc.)")
+    args = parser.parse_args()
+
+    logger.info("Starting MCP Advanced Music Analysis Server with transport: %s", args.transport)
+
+    if args.transport == "http":
+        from mcp.server.http import http_server
+        async with http_server() as (read_stream, write_stream):
+            await app.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="mcp-advanced-music",
+                    server_version="0.1.0",
+                    capabilities=app.get_capabilities()
+                )
             )
-        )
+    else:
+        from mcp.server.stdio import stdio_server
+        async with stdio_server() as (read_stream, write_stream):
+            await app.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="mcp-advanced-music",
+                    server_version="0.1.0",
+                    capabilities=app.get_capabilities()
+                )
+            )
 
 if __name__ == "__main__":
     asyncio.run(main())

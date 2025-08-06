@@ -49,7 +49,8 @@ class AudioVisualizer:
         file_path: str, 
         output_path: Optional[str] = None,
         show_envelope: bool = True,
-        normalize: bool = True
+        normalize: bool = True,
+        output_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create waveform visualization.
@@ -73,19 +74,25 @@ class AudioVisualizer:
             
             if normalize:
                 y = y / np.max(np.abs(y))
+
+            # Reduz a densidade de pontos para evitar OverflowError
+            max_points = 10000
+            step = max(1, len(y) // max_points)
+            y = y[::step]
+            x = time_axis[::step]
             
             # Create figure
             fig, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
             fig.patch.set_facecolor('#0c0c1e')
             
             # Plot waveform
-            ax.plot(time_axis, y, color='#00ff88', linewidth=0.5, alpha=0.8)
+            ax.plot(x, y, color='#00ff88', linewidth=0.5, alpha=0.8)
             
             if show_envelope:
                 # Calculate and plot envelope
                 envelope = np.abs(y)
-                ax.fill_between(time_axis, envelope, alpha=0.3, color='#00ff88')
-                ax.fill_between(time_axis, -envelope, alpha=0.3, color='#00ff88')
+                ax.fill_between(x, envelope, alpha=0.3, color='#00ff88')
+                ax.fill_between(x, -envelope, alpha=0.3, color='#00ff88')
             
             # Styling
             ax.set_xlabel('Time (seconds)', color='white', fontsize=12)
@@ -99,8 +106,16 @@ class AudioVisualizer:
             
             # Save or encode
             if output_path:
-                plt.savefig(output_path, dpi=self.dpi, bbox_inches='tight', facecolor='#0c0c1e')
+                # Determine output_dir: if output_dir param is not None, use it; else use output_path's dirname
+                import os
+                # If output_dir is not provided, use the directory of output_path
+                dir_to_use = output_dir if output_dir is not None else os.path.dirname(output_path)
+                output_filename = f"waveform_{os.path.splitext(os.path.basename(file_path))[0]}.png"
+                output_path_final = os.path.join(dir_to_use, output_filename)
+                plt.savefig(output_path_final, dpi=self.dpi, bbox_inches='tight', facecolor='#0c0c1e')
+                print(f"📤 Imagem salva em: {output_path_final}")
                 image_data = None
+                output_path = output_path_final
             else:
                 # Encode to base64
                 buffer = io.BytesIO()
@@ -183,14 +198,21 @@ class AudioVisualizer:
             # Create figure
             fig, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
             fig.patch.set_facecolor('#0c0c1e')
-            
+
+            # Choose y_axis parameter for specshow
+            tipo_espectrograma = spectrogram_type
+            y_axis = (
+                "log" if tipo_espectrograma == "mel"
+                else "cqt_note" if tipo_espectrograma == "cqt"
+                else "linear"
+            )
             # Plot spectrogram
             img = librosa.display.specshow(
                 S_db, 
                 sr=sr, 
                 hop_length=hop_length,
                 x_axis='time', 
-                y_axis='hz' if spectrogram_type == 'stft' else spectrogram_type,
+                y_axis=y_axis,
                 ax=ax,
                 cmap=self.spectrogram_cmap
             )
@@ -265,11 +287,11 @@ class AudioVisualizer:
         """
         try:
             start_time = time.time()
-            
+            axes = []
             if plot_type == "comprehensive":
-                fig, axes = plt.subplots(2, 2, figsize=(16, 12), dpi=self.dpi)
+                fig, axes_arr = plt.subplots(2, 2, figsize=(16, 12), dpi=self.dpi)
                 fig.patch.set_facecolor('#0c0c1e')
-                axes = axes.flatten()
+                axes = axes_arr.flatten()
                 
                 # MFCC visualization
                 if 'spectral' in features and 'mfcc' in features['spectral']:
@@ -324,7 +346,61 @@ class AudioVisualizer:
                 axes[3].set_facecolor('#0c0c1e')
                 
                 title = "Comprehensive Feature Analysis"
-            
+            elif plot_type == "spectral":
+                spectral_data = {}
+                spectral_features = features.get("spectral", {})
+                if "centroid" in spectral_features:
+                    spectral_data["Spectral Centroid"] = np.mean(spectral_features["centroid"])
+                if "bandwidth" in spectral_features:
+                    spectral_data["Spectral Bandwidth"] = np.mean(spectral_features["bandwidth"])
+                if "rolloff" in spectral_features:
+                    spectral_data["Spectral Rolloff"] = np.mean(spectral_features["rolloff"])
+                if "flatness" in spectral_features:
+                    spectral_data["Spectral Flatness"] = np.mean(spectral_features["flatness"])
+
+                if spectral_data:
+                    plt.figure(figsize=(10, 4))
+                    bars = plt.bar(spectral_data.keys(), spectral_data.values(), color="#80cbc4")
+                    plt.title("Spectral Feature Analysis", fontsize=14, weight="bold")
+                    plt.ylabel("Mean Value")
+                    plt.gca().set_facecolor("#000000")
+                    plt.gcf().patch.set_facecolor("#0c0c1e")
+                    plt.tight_layout()
+                    # Ensure title is set before suptitle usage
+                    title = "Spectral Feature Analysis"
+                else:
+                    raise ValueError("No spectral features found in analysis result.")
+            elif plot_type == "rhythmic":
+                fig, ax = plt.subplots(figsize=(10, 4))
+                rhythmic_data = features.get("rhythmic", {})
+
+                stability = rhythmic_data.get("tempo_stability", 0)
+                complexity = rhythmic_data.get("rhythm_complexity", 0)
+                bass = rhythmic_data.get("rhythm_balance", {}).get("bass_prominence", 0)
+                mid = rhythmic_data.get("rhythm_balance", {}).get("mid_prominence", 0)
+                high = rhythmic_data.get("rhythm_balance", {}).get("high_prominence", 0)
+                tempo = rhythmic_data.get("tempo_bpm", 0)
+
+                labels = ["Stability", "Complexity", "Bass", "Mid", "High"]
+                values = [stability, complexity, bass, mid, high]
+
+                ax.bar(labels, values, color="#77d9d9")
+                ax.set_title("Rhythmic Features")
+                ax.set_ylabel("Value")
+
+                # Exibe o tempo em texto ao lado
+                ax.text(
+                    1.05, 0.9,
+                    f"Tempo: {tempo:.1f} BPM",
+                    transform=ax.transAxes,
+                    color="white",
+                    fontsize=12,
+                    verticalalignment='top',
+                    bbox=dict(boxstyle="round", facecolor="black", edgecolor="white")
+                )
+
+                axes.append(ax)
+                title = "Rhythmic Feature Analysis"
             # Style all axes
             for ax in axes:
                 ax.tick_params(colors='white')

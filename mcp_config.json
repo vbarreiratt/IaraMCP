@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "iaramcp": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": ["-m", "iaramcp.server_fastmcp"],
+      "env": {
+        "PYTHONPATH": "/Users/vitor/Desktop/IaraMCP/src"
+      }
+    }
+  }
+}

@@ -74,10 +74,10 @@ async def test_audio_analysis():
     print('''
 {
   "mcpServers": {
-    "advanced-music-analysis": {
-      "command": "python",
-      "args": ["-m", "iaramcp.server"],
-      "env": {"PYTHONPATH": "/Users/vitor/Desktop/analisemusicalavancado/src"}
+    "iaramcp": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": ["-m", "iaramcp.server_fastmcp"],
+      "env": {"PYTHONPATH": "/Users/vitor/Desktop/IaraMCP/src"}
     }
   }
 }
