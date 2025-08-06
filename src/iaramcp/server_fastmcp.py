@@ -5,6 +5,7 @@ Inspirado na Iara, ser mitológico brasileiro das águas.
 Implementa análise musical completa via protocolo MCP.
 """
 
+from fastapi import FastAPI
 from fastmcp import FastMCP
 from pathlib import Path
 import json
@@ -133,8 +134,28 @@ except ImportError:
     VISUALIZATION_AVAILABLE = False
     OPTIMIZATION_AVAILABLE = False
 
-# Initialize FastMCP
+# =========================================================
+# ===> ESTRUTURA DA APLICAÇÃO ATUALIZADA <===
+# =========================================================
+
+# 1. Crie a aplicação FastAPI principal. Ela será o ponto de entrada.
+app = FastAPI(title="Portal da Encantaria - IaraMCP")
+
+# 2. Crie a aplicação FastMCP como antes.
 mcp = FastMCP("IaraMCP - Análise Musical das Águas")
+
+# 3. Adicione o endpoint de health check na aplicação PRINCIPAL.
+@app.get("/")
+async def health_check():
+    """
+    Endpoint simples para o health check da plataforma de nuvem (Smithery).
+    Responde que a Iara está viva e ouvindo.
+    """
+    return {"status": "A Iara está ouvindo das profundezas da nuvem..."}
+
+# 4. Monte a aplicação MCP como uma sub-aplicação.
+# Todas as ferramentas da Iara estarão agora sob o caminho /mcp
+app.mount("/mcp", mcp)
 
 # Global instances
 analyzer = AudioAnalyzer() if AUDIO_ANALYSIS_AVAILABLE else AudioAnalyzer()
@@ -1581,4 +1602,5 @@ def iara_compartilhar_sabedoria_otimizacao() -> dict:
         }
 
 if __name__ == "__main__":
-    mcp.run()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=3333)

@@ -42,7 +42,7 @@ advanced = [
 ]
 
 [project.scripts]
-iaramcp = "iaramcp.server:main"
+iaramcp = "iaramcp.server_fastmcp:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

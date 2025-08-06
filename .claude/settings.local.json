@@ -19,7 +19,17 @@
       "Bash(mv:*)",
       "Bash(PYTHONPATH=/Users/vitor/Desktop/analisemusicalavancado/src /opt/anaconda3/bin/python -c \"\nimport sys\nprint(''Python path:'', sys.executable)\ntry:\n    import iaramcp.server_fastmcp\n    print(''✅ iaramcp.server_fastmcp importado com sucesso!'')\nexcept Exception as e:\n    print(f''❌ Erro ao importar: {e}'')\n\")",
       "Bash(PYTHONPATH=/Users/vitor/Desktop/analisemusicalavancado/src /opt/anaconda3/bin/python -c \"\nimport sys\nprint(''✅ Testando servidor IaraMCP com novos nomes temáticos...'')\ntry:\n    import iaramcp.server_fastmcp\n    print(''✅ IaraMCP server_fastmcp importado com sucesso!'')\n    \n    # Test if we can instantiate the FastMCP app\n    from iaramcp.server_fastmcp import mcp\n    print(''✅ FastMCP app instanciada com sucesso!'')\n    \n    # List tools to verify new names\n    print(''✅ Servidor carregado - ferramentas com nomes temáticos da Iara prontas!'')\n    \nexcept Exception as e:\n    print(f''❌ Erro ao testar servidor: {e}'')\n    import traceback\n    traceback.print_exc()\n\")",
-      "Bash(PYTHONPATH:*)"
+      "Bash(PYTHONPATH:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:smithery.ai)",
+      "WebFetch(domain:github.com)",
+      "Bash(docker build:*)",
+      "Bash(docker run:*)",
+      "Bash(curl:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker stop:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

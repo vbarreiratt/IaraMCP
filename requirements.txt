@@ -7,10 +7,10 @@ scipy>=1.7.0
 soundfile>=0.12.0
 
 # Advanced features (optional - install separately if needed)
-# demucs>=4.0.0
-# torch>=2.0.0
-# torchaudio>=2.0.0
-# scikit-learn>=1.0.0
-# matplotlib>=3.5.0
-# essentia>=2.1b6.dev858
-# madmom>=0.16.1
+demucs>=4.0.0
+torch>=2.0.0
+torchaudio>=2.0.0
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+essentia>=2.1b6.dev858
+madmom>=0.16.1

@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "iaramcp": {
-      "command": "/opt/anaconda3/bin/python",
-      "args": ["-m", "iaramcp.server_multi_transport", "--transport", "stdio"],
-      "env": {"PYTHONPATH": "/Users/vitor/Desktop/IaraMCP/src"}
-    }
-  }
-}
