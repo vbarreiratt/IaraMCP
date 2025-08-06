@@ -29,7 +29,9 @@
       "Bash(curl:*)",
       "Bash(docker logs:*)",
       "Bash(docker stop:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(echo:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }
