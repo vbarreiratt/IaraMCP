@@ -177,12 +177,7 @@ iara_harmonizar_fluxo_musical("/caminho/para/musica.mp3",
 
 ## 🔮 Roadmap Futuro
 
-### v0.2.0 - Águas Brasileiras
-- Detecção de gêneros musicais brasileiros
-- Instrumentos tradicionais (berimbau, cuíca, pandeiro)
-- Análise rítmica específica (samba, bossa nova, forró)
-
-### v0.3.0 - Águas Profundas  
+### v0.2.0 - Águas Profundas  
 - Modelos ML personalizados
 - Análise harmônica avançada
 - Exportação para MIDI/MusicXML
